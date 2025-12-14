@@ -11,6 +11,7 @@
 - `cargo build` / `cargo build --release`: compile in debug/release.
 - `cargo run`: launch the GTK4 app locally.
 - `cargo test`: run unit tests (parsing, filtering/sorting, slugify, `.desktop` roundtrips).
+- Packaging: RPM spec builds offline from vendored crates; keep `vendor/` and `.cargo/config.toml` in sync with `Cargo.lock` and tag releases (e.g., `v1.0.1`) before Copr builds.
 
 ## Coding Style & Naming Conventions
 - Rust 2024 edition; prefer explicit types and early `?` returns with `anyhow::Result`.
