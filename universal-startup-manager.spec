@@ -25,13 +25,13 @@ user-owned entries while keeping system entries read-only. It preserves extra
 %cargo_prep
 
 %build
-%cargo_build --release
+%cargo_build
 
 %install
 %cargo_install
 
 %check
-%cargo_test --release
+%cargo_test
 
 %files
 %license LICENSE
