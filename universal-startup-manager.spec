@@ -9,7 +9,6 @@ Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
 
 BuildRequires:  cargo
 BuildRequires:  rust
-BuildRequires:  rust-packaging
 BuildRequires:  pkgconfig(gio-2.0)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gtk4)
@@ -22,16 +21,15 @@ user-owned entries while keeping system entries read-only. It preserves extra
 
 %prep
 %autosetup -n %{name}-%{version}
-%cargo_prep
 
 %build
-%cargo_build
+cargo build --release --locked
 
 %install
-%cargo_install
+install -Dm0755 target/release/universal-startup-manager %{buildroot}%{_bindir}/universal-startup-manager
 
 %check
-%cargo_test
+cargo test --release --locked
 
 %files
 %license LICENSE
