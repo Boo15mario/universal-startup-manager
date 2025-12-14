@@ -1,5 +1,5 @@
 Name:           universal-startup-manager
-Version:        0.1.0
+Version:        1.0.0
 Release:        1%{?dist}
 Summary:        GTK4 app to manage XDG autostart entries
 
@@ -39,5 +39,5 @@ user-owned entries while keeping system entries read-only. It preserves extra
 %{_bindir}/universal-startup-manager
 
 %changelog
-* Sun Dec 14 2025 Your Name <you@example.com> - 0.1.0-1
+* Sun Dec 14 2025 Your Name <you@example.com> - 1.0.0-1
 - Initial RPM release
