@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Universal Startup Manager
+Comment=Manage XDG autostart applications
+Exec=universal-startup-manager
+Icon=universal-startup-manager
+Terminal=false
+Type=Application
+Categories=Utility;System;Settings;
+Keywords=autostart;startup;session;applications;
+StartupNotify=true
