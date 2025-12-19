@@ -9,5 +9,7 @@ tarball := $(outdir)/$(name)-$(version).tar.gz
 
 srpm:
 	mkdir -p $(outdir)
-	git archive --format=tar.gz --prefix=$(name)-$(version)/ -o $(tarball) HEAD
+	tar --exclude-vcs --exclude='./target' --exclude='./fedora-*' \
+		--transform "s|^|$(name)-$(version)/|" \
+		-czf $(tarball) .
 	rpmbuild -bs --define "_sourcedir $(outdir)" --define "_srcrpmdir $(outdir)" $(spec)
