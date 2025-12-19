@@ -18,6 +18,7 @@ use gtk4::{
 use tempfile::NamedTempFile;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 enum StartupSource {
     UserAutostart,
     SystemAutostart,
@@ -121,6 +122,7 @@ fn build_ui(app: &Application) -> Result<()> {
     let delete_button = Button::with_label("Delete");
     let edit_button = Button::with_label("Edit");
     let sort_button = Button::with_label("Sort");
+    let about_button = Button::with_label("About");
     toggle_button.set_sensitive(false);
     delete_button.set_sensitive(false);
     edit_button.set_sensitive(false);
@@ -153,6 +155,8 @@ fn build_ui(app: &Application) -> Result<()> {
     let filter_button = Button::with_label("Filter");
     filter_button.set_accessible_role(AccessibleRole::Button);
     filter_button.set_tooltip_text(Some("Filter visible entries"));
+    about_button.set_accessible_role(AccessibleRole::Button);
+    about_button.set_tooltip_text(Some("About this app"));
 
     {
         let state = state.clone();
@@ -207,6 +211,17 @@ fn build_ui(app: &Application) -> Result<()> {
 
     {
         let state = state.clone();
+        about_button.connect_clicked(move |_| {
+            if let Err(err) = show_about_dialog(&state) {
+                state
+                    .status_bar
+                    .set_text(&format!("About dialog failed: {err:#}"));
+            }
+        });
+    }
+
+    {
+        let state = state.clone();
         toggle_button.connect_clicked(move |_| {
             if let Err(err) = toggle_selected(&state) {
                 state.status_bar.set_text(&format!("Toggle failed: {err:#}"));
@@ -240,6 +255,7 @@ fn build_ui(app: &Application) -> Result<()> {
     header.pack_start(&filter_button);
     header.pack_start(&sort_button);
     header.pack_end(&add_button);
+    header.pack_end(&about_button);
 
     let list_box_scrolled = ScrolledWindow::builder()
         .child(&list_box)
@@ -702,6 +718,51 @@ fn show_sort_dialog(state: &AppState) -> Result<()> {
     });
 
     dialog.show();
+    Ok(())
+}
+
+fn show_about_dialog(state: &AppState) -> Result<()> {
+    let parent = state
+        .list_box
+        .root()
+        .and_then(|w| w.downcast::<ApplicationWindow>().ok());
+    let dialog = Dialog::with_buttons(
+        Some("About Universal Startup Manager"),
+        parent.as_ref(),
+        gtk4::DialogFlags::MODAL,
+        &[("Close", ResponseType::Close)],
+    );
+    dialog.set_accessible_role(AccessibleRole::Dialog);
+    dialog.update_property(&[
+        gtk4::accessible::Property::Label("About Universal Startup Manager"),
+        gtk4::accessible::Property::Description("Shows the app version and a brief description."),
+    ]);
+
+    let content = dialog.content_area();
+    content.set_spacing(6);
+    let description = Label::new(Some(
+        "Manage user autostart entries and view system startup items.",
+    ));
+    description.set_wrap(true);
+    let version = Label::new(Some(&format!(
+        "Version {}",
+        env!("CARGO_PKG_VERSION")
+    )));
+    content.append(&description);
+    content.append(&version);
+
+    let close_button = dialog
+        .widget_for_response(ResponseType::Close)
+        .and_then(|w| w.downcast::<Button>().ok());
+    if let Some(close_button) = close_button {
+        close_button.update_property(&[gtk4::accessible::Property::Label(
+            "Close about dialog",
+        )]);
+    }
+    dialog.connect_response(|dlg, _| {
+        dlg.close();
+    });
+    dialog.present();
     Ok(())
 }
 
