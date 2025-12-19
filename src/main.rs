@@ -733,23 +733,18 @@ fn show_about_dialog(state: &AppState) -> Result<()> {
         &[("Close", ResponseType::Close)],
     );
     dialog.set_accessible_role(AccessibleRole::Dialog);
-    dialog.update_property(&[
-        gtk4::accessible::Property::Label("About Universal Startup Manager"),
-        gtk4::accessible::Property::Description("Shows the app version and a brief description."),
-    ]);
+    dialog.update_property(&[gtk4::accessible::Property::Label(
+        "About Universal Startup Manager",
+    )]);
 
     let content = dialog.content_area();
     content.set_spacing(6);
-    let description = Label::new(Some(
-        "Manage user autostart entries and view system startup items.",
-    ));
-    description.set_wrap(true);
-    let version = Label::new(Some(&format!(
-        "Version {}",
+    let description = Label::new(Some(&format!(
+        "Manage user autostart entries and view system startup items. Version {}",
         env!("CARGO_PKG_VERSION")
     )));
+    description.set_wrap(true);
     content.append(&description);
-    content.append(&version);
 
     let close_button = dialog
         .widget_for_response(ResponseType::Close)
