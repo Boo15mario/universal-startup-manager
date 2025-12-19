@@ -15,6 +15,7 @@ use gtk4::{
     Entry, HeaderBar, Label, ListBox, ListBoxRow, Orientation, ResponseType, ScrolledWindow,
     SelectionMode,
 };
+use tempfile::NamedTempFile;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum StartupSource {
@@ -419,6 +420,7 @@ fn toggle_selected(state: &AppState) -> Result<()> {
         .path
         .clone()
         .unwrap_or_else(|| user_autostart_dir().join(format!("{}.desktop", slugify(&entry.name))));
+    let path = validate_user_entry_path(&path)?;
     entry.enabled = !entry.enabled;
     write_desktop_entry(entry, &path)?;
     state
@@ -439,7 +441,8 @@ fn delete_selected(state: &AppState) -> Result<()> {
         .path
         .as_ref()
         .context("Entry has no associated file path")?;
-    fs::remove_file(path).with_context(|| format!("Removing {:?}", path))?;
+    let path = validate_user_entry_path(path)?;
+    fs::remove_file(&path).with_context(|| format!("Removing {:?}", path))?;
     drop(entries);
     state.status_bar.set_text("Deleted entry");
     refresh_entries(state)?;
@@ -760,7 +763,6 @@ fn parse_desktop_file(path: &Path, source: StartupSource) -> Result<StartupEntry
 
     let mut current_group: Option<String> = None;
     let mut current_other: Vec<String> = Vec::new();
-    let mut in_entry_group = false;
 
     for raw_line in content.lines() {
         let trimmed = raw_line.trim();
@@ -781,7 +783,7 @@ fn parse_desktop_file(path: &Path, source: StartupSource) -> Result<StartupEntry
             }
 
             let group_name = trimmed.trim_matches(&['[', ']'][..]).to_string();
-            in_entry_group = group_name == "Desktop Entry";
+            let in_entry_group = group_name == "Desktop Entry";
             current_group = Some(group_name.clone());
             if !in_entry_group {
                 current_other.push(raw_line.to_string());
@@ -855,9 +857,9 @@ fn write_desktop_entry(entry: &StartupEntry, path: &Path) -> Result<()> {
         dir = PathBuf::from(".");
     }
     fs::create_dir_all(&dir).with_context(|| format!("Creating dir {:?}", dir))?;
-    let tmp = path.with_extension("tmp");
-    let mut file = fs::File::create(&tmp)
-        .with_context(|| format!("Creating temp file {:?}", tmp))?;
+    let mut tmp = NamedTempFile::new_in(&dir).with_context(|| format!("Creating temp file in {:?}", dir))?;
+    let tmp_path = tmp.path().to_path_buf();
+    let file = tmp.as_file_mut();
     let mut lines = Vec::new();
     lines.extend(entry.preamble.clone());
     if entry.preamble.last().map(|s| !s.is_empty()).unwrap_or(false) {
@@ -904,9 +906,10 @@ fn write_desktop_entry(entry: &StartupEntry, path: &Path) -> Result<()> {
         lines.join("\n") + "\n"
     };
     file.write_all(content.as_bytes())
-        .with_context(|| format!("Writing {:?}", tmp))?;
+        .with_context(|| format!("Writing {:?}", tmp_path))?;
     let _ = file.sync_all();
-    fs::rename(&tmp, path).with_context(|| format!("Replacing {:?}", path))?;
+    tmp.persist(path)
+        .with_context(|| format!("Replacing {:?}", path))?;
     Ok(())
 }
 
@@ -919,11 +922,14 @@ fn edit_user_entry(original: &StartupEntry, new_name: &str, new_cmd: &str, origi
     } else {
         user_autostart_dir().join(format!("{}.desktop", slugify(new_name)))
     };
+    let target_path = validate_user_entry_path(&target_path)?;
     write_desktop_entry(&updated, &target_path)?;
     // If slug/name changed, remove old file to avoid duplicates.
     if let Some(old_path) = original_path {
         if old_path != &target_path {
-            let _ = fs::remove_file(old_path);
+            if let Ok(old_path) = validate_user_entry_path(old_path) {
+                let _ = fs::remove_file(old_path);
+            }
         }
     }
     Ok(())
@@ -937,6 +943,7 @@ fn create_user_entry(name: &str, command: &str) -> Result<PathBuf> {
     fs::create_dir_all(&dir).with_context(|| format!("Creating dir {:?}", dir))?;
     let file_name = format!("{}.desktop", slugify(name));
     let path = dir.join(file_name);
+    let path = validate_user_entry_path(&path)?;
     let entry = StartupEntry {
         name: name.to_string(),
         command: command.to_string(),
@@ -981,7 +988,46 @@ fn source_label(source: &StartupSource) -> &'static str {
 }
 
 fn is_user_owned_path(path: &Path) -> bool {
-    path.starts_with(user_autostart_dir())
+    let base = user_autostart_dir();
+    let base_canon = match base.canonicalize() {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let parent_canon = match parent.canonicalize() {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
+    if parent_canon != base_canon {
+        return false;
+    }
+    match fs::symlink_metadata(path) {
+        Ok(meta) => meta.is_file() && !meta.file_type().is_symlink(),
+        Err(_) => false,
+    }
+}
+
+fn validate_user_entry_path(path: &Path) -> Result<PathBuf> {
+    let base = user_autostart_dir();
+    let base_canon = base
+        .canonicalize()
+        .with_context(|| format!("Resolving {:?}", base))?;
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let parent_canon = parent
+        .canonicalize()
+        .with_context(|| format!("Resolving {:?}", parent))?;
+    if parent_canon != base_canon {
+        bail!("Entry path is outside user autostart dir");
+    }
+    if let Ok(meta) = fs::symlink_metadata(path) {
+        if meta.file_type().is_symlink() {
+            bail!("Refusing to operate on symlinked entry");
+        }
+        if !meta.is_file() {
+            bail!("Entry path is not a regular file");
+        }
+    }
+    Ok(path.to_path_buf())
 }
 
 #[cfg(test)]
