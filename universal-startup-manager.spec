@@ -5,7 +5,7 @@ Summary:        GTK4 app to manage XDG autostart entries
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/Boo15mario/universal-startup-manager
-Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
+Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  cargo
 BuildRequires:  rust
