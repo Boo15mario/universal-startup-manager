@@ -1,5 +1,5 @@
 Name:           universal-startup-manager
-Version:        1.1.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        GTK4 app to manage XDG autostart entries
 
