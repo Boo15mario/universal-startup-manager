@@ -41,6 +41,7 @@ Make sure `~/.local/bin` is in your PATH.
 - Add, edit, delete, and toggle user-owned entries (system entries remain read-only)
 - Filtering by enabled/disabled and user/system
 - Sorting by name (asc/desc), status, or source (user-first/system-first) via dialog
+- About dialog with version and short description
 - Accessible dialogs and labels; empty-state announcement when no entries match filters
 - Preserves extra `.desktop` keys, localized `Name[xx]`, comments, and other groups when rewriting files
 

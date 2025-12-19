@@ -4,14 +4,14 @@
 - `src/`: GTK4 Rust application code; `main.rs` contains UI, data model, `.desktop` parsing/writing, and dialogs.
 - `README.md`: usage, dependencies, and distro-specific install notes.
 - `AGENTS.md`: contributor guidance (this file).
-- `Cargo.toml`: dependencies; `tempfile` used in tests.
+- `Cargo.toml`: dependencies; `tempfile` used for safe writes and tests.
 - Tests live inline in `src/main.rs` under `#[cfg(test)]`.
 
 ## Build, Test, and Development Commands
 - `cargo build` / `cargo build --release`: compile in debug/release.
 - `cargo run`: launch the GTK4 app locally.
 - `cargo test`: run unit tests (parsing, filtering/sorting, slugify, `.desktop` roundtrips).
-- Packaging: RPM spec builds offline from vendored crates; keep `vendor/` and `.cargo/config.toml` in sync with `Cargo.lock` and tag releases (e.g., `v1.0.1`) before Copr builds.
+- Packaging: RPM spec builds offline from vendored crates; keep `vendor/` and `.cargo/config.toml` in sync with `Cargo.lock`, and keep `Cargo.lock` current for `--locked` builds. Tag releases (e.g., `v1.0.1`) before Copr builds.
 
 ## Coding Style & Naming Conventions
 - Rust 2024 edition; prefer explicit types and early `?` returns with `anyhow::Result`.
