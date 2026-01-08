@@ -12,6 +12,7 @@ GTK4 Rust app to manage autostart entries for the current user. It reads XDG aut
 - Fedora: `sudo dnf install @development-tools pkgconf-pkg-config gtk4-devel rust cargo`
 - Arch: `sudo pacman -S base-devel pkgconf gtk4 rust` (cargo comes with rust)
 - Gentoo: `sudo emerge --ask sys-devel/gcc virtual/pkgconfig x11-libs/gtk+:4 dev-lang/rust`
+- NixOS: `nix-shell -p rustc cargo pkg-config gtk4` (or `nix shell nixpkgs#rustc nixpkgs#cargo nixpkgs#pkg-config nixpkgs#gtk4`)
 
 ## Run
 ```bash
@@ -35,6 +36,72 @@ Or with Cargo:
 cargo install --path .
 ```
 Make sure `~/.local/bin` is in your PATH.
+
+## Install (NixOS)
+Add a local build to `environment.systemPackages` or `home.packages`:
+```nix
+# configuration.nix or home.nix
+{
+  environment.systemPackages = [
+    (pkgs.rustPlatform.buildRustPackage {
+      pname = "universal-startup-manager";
+      version = "git";
+      src = /path/to/universal-startup-manager;
+      cargoLock.lockFile = /path/to/universal-startup-manager/Cargo.lock;
+      nativeBuildInputs = [ pkgs.pkg-config ];
+      buildInputs = [ pkgs.gtk4 ];
+    })
+  ];
+}
+```
+Home Manager variant:
+```nix
+# home.nix
+{
+  home.packages = [
+    (pkgs.rustPlatform.buildRustPackage {
+      pname = "universal-startup-manager";
+      version = "git";
+      src = /path/to/universal-startup-manager;
+      cargoLock.lockFile = /path/to/universal-startup-manager/Cargo.lock;
+      nativeBuildInputs = [ pkgs.pkg-config ];
+      buildInputs = [ pkgs.gtk4 ];
+    })
+  ];
+}
+```
+Flake example:
+```nix
+{
+  description = "Universal Startup Manager";
+
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
+
+  outputs = { self, nixpkgs }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs { inherit system; };
+    in {
+      packages.${system}.default = pkgs.rustPlatform.buildRustPackage {
+        pname = "universal-startup-manager";
+        version = "git";
+        src = self;
+        cargoLock.lockFile = ./Cargo.lock;
+        nativeBuildInputs = [ pkgs.pkg-config ];
+        buildInputs = [ pkgs.gtk4 ];
+      };
+    };
+}
+```
+Usage:
+```bash
+nix build
+./result/bin/universal-startup-manager
+```
+Or:
+```bash
+nix run
+```
 
 ## Features
 - Enumerates XDG autostart entries from `~/.config/autostart` and `/etc/xdg/autostart`
