@@ -11,6 +11,7 @@
 - `cargo build` / `cargo build --release`: compile in debug/release.
 - `cargo run`: launch the GTK4 app locally.
 - `cargo test`: run unit tests (parsing, filtering/sorting, slugify, `.desktop` roundtrips).
+- NixOS dev shell: `nix-shell -p rustc cargo pkg-config gtk4` (or `nix shell nixpkgs#rustc nixpkgs#cargo nixpkgs#pkg-config nixpkgs#gtk4`).
 - Packaging: RPM spec builds offline from vendored crates; keep `vendor/` and `.cargo/config.toml` in sync with `Cargo.lock`, and keep `Cargo.lock` current for `--locked` builds. For Copr SCM builds, `.copr/Makefile` provides the `srpm` target. Tag releases (e.g., `v1.0.1`) before Copr builds.
 
 ## Coding Style & Naming Conventions
