@@ -1,5 +1,5 @@
 Name:           universal-startup-manager
-Version:        1.2.0
+Version:        1.2.1
 Release:        1%{?dist}
 Summary:        GTK4 app to manage XDG autostart entries
 
@@ -41,8 +41,8 @@ desktop-file-validate universal-startup-manager.desktop
 %{_datadir}/applications/universal-startup-manager.desktop
 
 %changelog
-* Wed Jan 28 2026 Your Name <you@example.com> - 1.2.0-1
-- Bump version to 1.2.0
+* Wed Jan 28 2026 Your Name <you@example.com> - 1.2.1-1
+- Split main.rs into modules and bump version to 1.2.1
 * Sun Dec 14 2025 Your Name <you@example.com> - 1.1.0-1
 - Add About dialog with version info and accessibility labels
 * Sun Dec 14 2025 Your Name <you@example.com> - 1.0.2-1
