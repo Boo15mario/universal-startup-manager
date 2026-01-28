@@ -104,7 +104,7 @@ nix run
 ```
 
 ## Features
-- Enumerates XDG autostart entries from `~/.config/autostart` and `/etc/xdg/autostart`
+- Enumerates XDG autostart entries from `~/.config/autostart` and `/etc/xdg/autostart` (on NixOS also checks XDG config dirs like `/run/current-system/sw/etc/xdg/autostart`)
 - Add, edit, delete, and toggle user-owned entries (system entries remain read-only)
 - Filtering by enabled/disabled and user/system
 - Sorting by name (asc/desc), status, or source (user-first/system-first) via dialog

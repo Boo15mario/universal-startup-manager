@@ -3,6 +3,7 @@
 //! and delete user-owned entries. System entries are read-only.
 
 use std::cell::{Cell, RefCell};
+use std::env;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -767,10 +768,12 @@ fn load_entries() -> Result<Vec<StartupEntry>> {
         user_autostart_dir().as_ref(),
         StartupSource::UserAutostart,
     )?);
-    entries.extend(load_autostart_dir(
-        system_autostart_dir().as_ref(),
-        StartupSource::SystemAutostart,
-    )?);
+    for dir in system_autostart_dirs() {
+        entries.extend(load_autostart_dir(
+            dir.as_ref(),
+            StartupSource::SystemAutostart,
+        )?);
+    }
     Ok(entries)
 }
 
@@ -780,8 +783,71 @@ fn user_autostart_dir() -> PathBuf {
     base
 }
 
-fn system_autostart_dir() -> PathBuf {
-    PathBuf::from("/etc/xdg/autostart")
+fn system_autostart_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    let mut seen = Vec::new();
+    push_system_dir(&mut dirs, &mut seen, PathBuf::from("/etc/xdg/autostart"));
+    if is_nixos() {
+        for dir in nixos_system_autostart_dirs() {
+            push_system_dir(&mut dirs, &mut seen, dir);
+        }
+    }
+    dirs
+}
+
+fn push_system_dir(dirs: &mut Vec<PathBuf>, seen: &mut Vec<PathBuf>, candidate: PathBuf) {
+    if candidate.as_os_str().is_empty() {
+        return;
+    }
+    let normalized = fs::canonicalize(&candidate).unwrap_or_else(|_| candidate.clone());
+    if seen.iter().any(|path| path == &normalized) {
+        return;
+    }
+    seen.push(normalized);
+    dirs.push(candidate);
+}
+
+fn is_nixos() -> bool {
+    let paths = ["/etc/os-release", "/usr/lib/os-release"];
+    for path in paths {
+        if let Ok(content) = fs::read_to_string(path) {
+            if os_release_content_has_id(&content, "nixos") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn os_release_content_has_id(content: &str, target: &str) -> bool {
+    content.lines().any(|line| {
+        let line = line.trim();
+        if let Some(value) = line.strip_prefix("ID=") {
+            let value = value.trim_matches('"');
+            return value == target;
+        }
+        false
+    })
+}
+
+fn nixos_system_autostart_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Ok(config_dirs) = env::var("XDG_CONFIG_DIRS") {
+        for base in config_dirs.split(':') {
+            let base = base.trim();
+            if base.is_empty() {
+                continue;
+            }
+            let mut path = PathBuf::from(base);
+            path.push("autostart");
+            dirs.push(path);
+        }
+    }
+    dirs.push(PathBuf::from("/run/current-system/sw/etc/xdg/autostart"));
+    dirs.push(PathBuf::from(
+        "/nix/var/nix/profiles/default/etc/xdg/autostart",
+    ));
+    dirs
 }
 
 fn load_autostart_dir(dir: &Path, source: StartupSource) -> Result<Vec<StartupEntry>> {
@@ -1282,5 +1348,17 @@ Hidden=false
         let written = read_to_string(&path).unwrap();
         assert!(written.contains("Name=NewBase"));
         assert!(written.contains("Name[fr]=Nouveau"));
+    }
+
+    #[test]
+    fn os_release_detects_nixos_id() {
+        let content = "NAME=NixOS\nID=nixos\n";
+        assert!(os_release_content_has_id(content, "nixos"));
+    }
+
+    #[test]
+    fn os_release_rejects_other_ids() {
+        let content = "NAME=Ubuntu\nID=ubuntu\nID_LIKE=debian\n";
+        assert!(!os_release_content_has_id(content, "nixos"));
     }
 }
